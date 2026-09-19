@@ -12,3 +12,11 @@
 - publish.sh が OGP タグを index.html へ挿入したため、**公開実体で harness を取り直した**: `docs/harness-reports/245-raiken-hikari-2026-09-19T07-20-26-389Z.md` → 14項目すべて PASS
 - 学び: publish.sh の OGP 挿入は harness の後に走る。公開後の実体で1回取り直さないと、証跡が公開物と一致しない
 - 未検証: iPhone実機（harness は Playwright/WebKit 390px のみ）
+
+## 2026-09-19 旧URLの404を修復
+- 症状: `https://titan11111.github.io/245-raiken-hikari/raiken-hikari.html` が 404。ゲーム本体（`/245-raiken-hikari/`）は 200 で生きていた
+- 原因: 同日の改修でエントリを `raiken-hikari.html` → `index.html` に改名したため、**改名前に配ったリンクだけが死んだ**。リポジトリもPagesも正常（status=built）
+- 対処: `raiken-hikari.html` を 444バイトのリダイレクト専用ページとして復活。`<meta http-equiv="refresh">` ＋ `location.replace()` の二段で、`?query` と `#hash` も引き継ぐ
+- 検証: 旧URL HTTP **404 → 200**（commit `b074408` のPagesビルド完了後に実測）。正URLも 200 のまま。中身に `location.replace('./index.html' ...)` を確認
+- 未検証: リダイレクトの**実際の遷移**はブラウザ挙動（meta refresh / JS）のため、curlでは追従確認していない。配信されている内容の確認まで
+- 学び: **エントリファイル名を変えるときは、旧名をリダイレクトとして残す**。フォルダ改名はリポジトリごと作り直すので影響が見えやすいが、エントリ改名は「本体は200」なので気づきにくい
