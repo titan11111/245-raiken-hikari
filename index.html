@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,minimum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0e0b26">
+<meta name="description" content="浮遊都市の屋上で、拳に雷をためて雷雲鬼を退けるアクション。">
+<title>245｜雷拳ヒカリ</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="game-shell">
+  <footer id="control-deck" aria-label="操作盤">
+    <button type="button" class="game-btn fist" id="btnL" aria-label="左パンチ">左拳</button>
+    <button type="button" class="game-btn charge" id="btnCharge" aria-label="雷ため">雷ため</button>
+    <button type="button" class="game-btn fist" id="btnR" aria-label="右パンチ">右拳</button>
+    <button type="button" class="game-btn special" id="special" aria-label="必殺技 天雷拳" disabled>天雷拳</button>
+    <div class="sys">
+      <button type="button" class="game-btn" id="btnMute" aria-label="音の切り替え">♪</button>
+      <button type="button" class="game-btn" id="btnPause" aria-label="一時停止">Ⅱ</button>
+    </div>
+  </footer>
+  <div id="game-stage">
+    <div id="screen-wrap">
+      <canvas id="c" aria-label="雷拳ヒカリ"></canvas>
+      <div class="hud">
+        <div>
+          <div class="lbl">体力</div><div class="bar" id="hp"><i style="width:100%"></i></div>
+          <div class="lbl" style="margin-top:6px">雷ゲージ</div><div class="bar" id="gauge"><i style="width:0%"></i></div>
+        </div>
+        <div><div id="score">0</div><div id="wave">WAVE 1</div></div>
+      </div>
+      <div class="screen" id="title">
+        <h1>雷拳ヒカリ</h1>
+        <p>浮遊都市に雷雲鬼が押し寄せてきた。拳に雷をためて、屋上を守り抜け。</p>
+        <div class="how">
+          <b>パンチ</b><span>左右ボタン、または画面の左右</span>
+          <b>雷弾</b><span>雷ためを長押しして離す</span>
+          <b>天雷拳</b><span>ゲージMAXで必殺</span>
+        </div>
+        <button type="button" id="start" class="game-btn">はじめる</button>
+        <div id="best"></div>
+      </div>
+      <div class="screen hidden" id="over">
+        <h1 class="ko">KO…</h1>
+        <p id="result"></p>
+        <button type="button" id="retry" class="game-btn">もう一回</button>
+      </div>
+    </div>
+  </div>
+</div>
+<dialog id="pauseDlg" aria-labelledby="pauseTitle">
+  <h2 id="pauseTitle">一時停止</h2>
+  <div class="col">
+    <button type="button" class="game-btn" id="btnResume">再開</button>
+    <button type="button" class="game-btn" id="btnMuteDlg">音の切り替え</button>
+    <button type="button" class="game-btn" id="btnQuit">タイトルへ</button>
+  </div>
+</dialog>
+<script src="script.js"></script>
+</body>
+</html>
