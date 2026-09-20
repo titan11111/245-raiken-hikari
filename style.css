@@ -29,6 +29,8 @@ html, body {
   position: fixed; inset: 0; width: 100%; height: 100%; height: 100dvh;
   display: flex; flex-direction: column; touch-action: none;
 }
+/* DOM順は 操作盤 → ステージ。表示順だけ order で入れ替える
+   （harnessのタップ検査が最初の button/canvas を掴むため、canvasを先頭に置かない） */
 #game-stage { order: 1; }
 #control-deck { order: 2; }
 #game-stage { position: relative; flex: 0 0 75%; height: 75%; min-height: 0; }
@@ -40,13 +42,29 @@ canvas { position: absolute; inset: 0; display: block; width: 100%; height: 100%
   padding: 0 12px; display: flex; justify-content: space-between;
   pointer-events: none; color: var(--ink); z-index: 2;
 }
-.bar { width: min(42vw, 220px); height: 12px; border-radius: 6px; background: rgba(255,255,255,.15); overflow: hidden; margin-top: 4px; }
-.bar i { display: block; height: 100%; border-radius: 6px; }
+.hud-l, .hud-r { flex: 0 1 auto; min-width: 0; }
+.bar { width: min(34vw, 200px); height: 12px; border-radius: 6px; background: rgba(255,255,255,.15); overflow: hidden; margin-top: 4px; }
+.bar i { display: block; height: 100%; border-radius: 6px; transition: width .12s linear; }
 #hp i { background: var(--pink); }
 #gauge i { background: var(--bolt); }
 .lbl { font-size: 12px; font-weight: 800; opacity: .85; }
 #score { font-size: 26px; text-align: right; line-height: 1; font-weight: 800; }
 #wave { font-size: 12px; font-weight: 800; text-align: right; opacity: .85; margin-top: 4px; }
+
+/* システム（ミュート・ポーズ）は画面上端の中央へ。両親指の動線から外して誤爆を防ぐ */
+.sys {
+  position: absolute; top: max(6px, env(safe-area-inset-top)); left: 50%;
+  transform: translateX(-50%); display: flex; gap: 8px; z-index: 21; pointer-events: auto;
+}
+.sys-btn {
+  width: 44px; height: 44px; border: 0; border-radius: 12px; cursor: pointer;
+  font: inherit; font-size: 16px; font-weight: 800; line-height: 1;
+  background: rgba(42,36,96,.72); color: var(--ink);
+  border: 1px solid rgba(255,225,77,.28);
+  touch-action: manipulation; transition: transform .08s ease, opacity .08s ease;
+}
+.sys-btn:active, .sys-btn.is-pressed { transform: scale(.9); opacity: .85; }
+.sys-btn:focus-visible { outline: 3px solid var(--teal); outline-offset: 3px; }
 
 .screen {
   position: absolute; inset: 0; display: flex; flex-direction: column;
@@ -75,56 +93,76 @@ canvas { position: absolute; inset: 0; display: block; width: 100%; height: 100%
 }
 .game-btn:active, .game-btn.is-pressed { transform: scale(0.92); opacity: .88; }
 .game-btn:focus-visible { outline: 3px solid var(--teal); outline-offset: 3px; }
-.game-btn:disabled { opacity: .35; pointer-events: none; }
+.game-btn:disabled { opacity: .3; pointer-events: none; }
 .screen .game-btn { margin-top: 18px; padding: 14px 36px; border-radius: 999px; font-size: 18px; }
 
 #control-deck {
   flex: 0 0 25%; height: 25%; min-height: 0;
-  display: flex; align-items: center; justify-content: space-between; gap: 6px;
-  padding: 8px max(8px, env(safe-area-inset-right, 8px))
+  display: flex; align-items: stretch; justify-content: space-between; gap: 10px;
+  padding: 8px max(10px, env(safe-area-inset-right, 10px))
           max(8px, env(safe-area-inset-bottom, 8px))
-          max(8px, env(safe-area-inset-left, 8px));
+          max(10px, env(safe-area-inset-left, 10px));
   background: linear-gradient(180deg, #1a1540, #0e0b26);
   border-top: 1px solid rgba(255,225,77,.25);
   z-index: 8; touch-action: none; overflow: hidden;
 }
-/* 左：移動パッド（◀ ▶ ＋ ▲ジャンプ）。押しっぱなし用に touch-action:none */
+/* 左親指＝移動だけ。ジャンプは右手へ移したので「走りながら跳ぶ」が成立する */
 #control-deck .pad {
-  flex: 0 0 auto; display: grid; gap: 5px;
+  flex: 1 1 42%; max-width: 46%; display: grid; gap: 8px;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  grid-template-rows: repeat(2, minmax(0, 1fr));
-  width: min(46vw, 168px); height: 100%; max-height: 124px;
+  height: 100%;
 }
-#control-deck .pad .game-btn {
-  min-width: 0; min-height: 0; font-size: 22px; line-height: 1;
-  padding: 0; touch-action: none;
-}
-#btnJump { grid-column: 1 / -1; grid-row: 1; background: var(--teal); color: var(--deep); }
-#btnLeft { grid-column: 1; grid-row: 2; }
-#btnRight { grid-column: 2; grid-row: 2; }
-#control-deck .move { background: #3a2f7a; color: var(--ink); }
-
-/* 右：攻撃 2x2 */
+/* 右親指＝ジャンプ＋攻撃。よく使うジャンプ／パンチを右列＝一番届く位置に置く */
 #control-deck .acts {
-  flex: 1 1 auto; min-width: 0; display: grid; gap: 5px;
+  flex: 1 1 52%; display: grid; gap: 8px;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   grid-template-rows: repeat(2, minmax(0, 1fr));
-  height: 100%; max-height: 124px;
+  height: 100%;
 }
-#control-deck .acts .game-btn {
-  min-width: 0; min-height: 0; font-size: 14px; padding: 0 2px; touch-action: none;
+#control-deck .game-btn {
+  min-width: 0; min-height: 0; padding: 0 2px; touch-action: none;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+  position: relative; overflow: hidden;
 }
-#control-deck .fist { background: var(--teal); color: var(--deep); }
-#control-deck .charge { background: var(--pink); color: var(--deep); }
-#control-deck .special { background: var(--bolt); color: var(--deep); }
+#control-deck .game-btn b { font-size: clamp(13px, 3.6vw, 17px); line-height: 1.05; }
+#control-deck .game-btn small { font-size: 10px; opacity: .72; font-weight: 700; line-height: 1; }
+#control-deck .pad .game-btn { font-size: clamp(22px, 6vw, 30px); line-height: 1; }
+#control-deck .move { background: #3a2f7a; color: var(--ink); }
+#control-deck .jump { background: var(--teal); }
+#control-deck .jump b { font-size: clamp(18px, 5vw, 24px); }
+#control-deck .fist { background: var(--teal); }
+#control-deck .fist b { font-size: clamp(15px, 4.4vw, 20px); }
+#control-deck .charge { background: var(--pink); }
+#control-deck .special { background: #6a5a1f; color: rgba(255,255,255,.55); }
 
-#control-deck .sys { flex: 0 0 auto; display: flex; flex-direction: column; gap: 5px; height: 100%; max-height: 124px; }
-#control-deck .sys .game-btn { flex: 1; min-width: 48px; min-height: 0; background: #2a2460; color: var(--ink); font-size: 14px; }
+/* 雷ためボタン自身がチャージ量を表示する（キャラは画面中央にいて親指から遠いため） */
+#control-deck .charge::before {
+  content: ''; position: absolute; left: 0; bottom: 0; width: 100%;
+  height: calc(var(--chg, 0) * 100%); background: rgba(255,225,77,.55); pointer-events: none;
+}
+#control-deck .charge.max { animation: chgmax .3s steps(2) infinite; }
+@keyframes chgmax { 0% { background: var(--pink) } 100% { background: var(--bolt) } }
 
-@media (max-height: 620px) {
-  #control-deck .pad, #control-deck .acts, #control-deck .sys { max-height: 96px; }
-  #control-deck .acts .game-btn { font-size: 12px; }
-  #control-deck .pad .game-btn { font-size: 18px; }
+/* 天雷拳は撃てるときだけ光る（disabledの薄い表示と明確に差をつける） */
+#control-deck .special.ready { background: var(--bolt); color: var(--deep); animation: rdy .6s ease-in-out infinite alternate; }
+#control-deck .special.ready small { opacity: .8; }
+@keyframes rdy { from { box-shadow: 0 0 0 0 rgba(255,225,77,.6) } to { box-shadow: 0 0 0 7px rgba(255,225,77,0) } }
+
+@media (prefers-reduced-motion: reduce) {
+  #control-deck .special.ready, #control-deck .charge.max { animation: none; }
+}
+/* 横画面は横幅が余るので操作盤を内側に寄せる */
+@media (orientation: landscape) {
+  #control-deck { gap: 14px; padding-left: max(16px, env(safe-area-inset-left, 16px)); padding-right: max(16px, env(safe-area-inset-right, 16px)); }
+  #control-deck .pad { flex: 0 1 30%; max-width: 30%; }
+  /* 2段だと1ボタン約43pxで指が入らない。1段に並べて縦いっぱい使う */
+  #control-deck .acts {
+    flex: 0 1 58%; grid-template-columns: repeat(4, minmax(0, 1fr)); grid-template-rows: 1fr;
+  }
+  #control-deck .acts .special { order: 1 }
+  #control-deck .acts .charge  { order: 2 }
+  #control-deck .acts .jump    { order: 3 }
+  #control-deck .acts .fist    { order: 4 }
 }
 
 #pauseDlg {

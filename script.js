@@ -39,7 +39,7 @@ function startBgm(){
 function stopBgm(){if(bgmNode){try{bgmNode.stop();}catch(e){}bgmNode=null;}}
 function blip(f=440){if(mute||!AC)return;try{const o=AC.createOscillator(),g=AC.createGain();o.frequency.value=f;g.gain.value=.05;o.connect(g);g.connect(AC.destination);o.start();o.stop(AC.currentTime+.08);}catch(e){}}
 function setMute(v){mute=v;try{localStorage.setItem('tg.245.mute',mute?'1':'0');}catch(e){}$('btnMute').textContent=mute?'🔇':'♪';if($('btnMuteDlg'))$('btnMuteDlg').textContent=mute?'音: オフ':'音: オン';if(mute)stopBgm();else startBgm();}
-function bindTap(el,handler){if(!el)return;const fire=e=>{e.preventDefault();try{el.setPointerCapture(e.pointerId);}catch(err){}el.classList.add('is-pressed');if(navigator.vibrate)navigator.vibrate(15);handler(e);};const release=()=>el.classList.remove('is-pressed');el.addEventListener('pointerdown',fire);el.addEventListener('pointerup',release);el.addEventListener('pointercancel',release);}
+function bindTap(el,handler){if(!el)return;const fire=e=>{e.preventDefault();try{el.setPointerCapture(e.pointerId);}catch(err){}el.classList.add('is-pressed');if(navigator.vibrate)navigator.vibrate(15);handler(e);};const release=()=>el.classList.remove('is-pressed');el.addEventListener('pointerdown',fire);['pointerup','pointercancel','lostpointercapture'].forEach(t=>el.addEventListener(t,release));}
 function setPaused(on){if(!$('title').classList.contains('hidden')&&on)return;paused=on;if(typeof clearHeld==='function')clearHeld();if(on){try{$('pauseDlg').showModal();}catch(e){}stopBgm();}else{try{$('pauseDlg').close();}catch(e){}if(!mute)startBgm();}}
 setMute(mute);
 let lastTouchEnd=0;document.addEventListener('touchend',e=>{const now=Date.now();if(now-lastTouchEnd<=300)e.preventDefault();lastTouchEnd=now;},{passive:false});
@@ -68,9 +68,21 @@ function spawn(){
 // ---- input
 let holdStart=0;
 const held={left:false,right:false};
-let chargePid=null;
+let chargePid=null,chargeSrc=null; // 'pointer' | 'key'
 function clearHeld(){held.left=held.right=false;
-  ['btnLeft','btnRight','btnJump'].forEach(id=>{const el=$(id);if(el)el.classList.remove('is-pressed')});}
+  ['btnLeft','btnRight','btnJump','btnPunch','btnCharge','special'].forEach(id=>{const el=$(id);if(el)el.classList.remove('is-pressed')});
+  if(st&&st.p){st.p.charging=false;st.p.charge=0;}
+  chargePid=null;chargeSrc=null;drawCharge(0);}
+// 雷ためボタン自身にチャージ量を出す（キャラは親指から遠く、目で追えないため）
+function drawCharge(v){const el=$('btnCharge');if(!el)return;
+  el.style.setProperty('--chg',(Math.min(v,2)/2).toFixed(3));el.classList.toggle('max',v>=2);}
+// パンチ：射程内で一番近い敵の側へ自動で振り向く（「殴ったのに当たらない」を消す）
+function punchAuto(){
+  if(paused||!st||!st.run)return;
+  const p=st.p,reach=95*S;let dir=p.face,bd=1e9;
+  for(const e of st.en){const d=Math.abs(e.x-p.x);if(d<reach&&d<bd){bd=d;dir=e.x<p.x?-1:1}}
+  punch(dir);
+}
 function jump(){
   if(paused||!st||!st.run)return;
   const p=st.p;if(!p.onGround)return;
@@ -115,13 +127,17 @@ cv.addEventListener('pointerdown',ev=>{
   if(paused||!st||!st.run)return;ev.preventDefault();
   try{cv.setPointerCapture(ev.pointerId);}catch(e){}
   const r=cv.getBoundingClientRect(),x=ev.clientX-r.left;
-  punch(x<st.p.x?-1:1);st.p.charging=true;chargePid=ev.pointerId;holdStart=performance.now();
+  punch(x<st.p.x?-1:1);
 });
-// ためを始めた指以外の pointerup では暴発させない（移動ボタンとの同時押し対策）
+// ためを始めた入力以外では暴発させない（移動ボタンとの同時押し・キーとタッチの混線を防ぐ）
 function endHold(ev){
   if(!st||!st.p.charging)return;
-  if(ev&&ev.pointerId!==undefined&&chargePid!==null&&ev.pointerId!==chargePid)return;
-  st.p.charging=false;chargePid=null;fireBolt();
+  const fromPointer=!!(ev&&ev.pointerId!==undefined);
+  if(fromPointer){
+    if(chargeSrc!=='pointer')return;
+    if(chargePid!==null&&ev.pointerId!==chargePid)return;
+  }else if(chargeSrc==='pointer')return;
+  st.p.charging=false;chargePid=null;chargeSrc=null;fireBolt();drawCharge(0);
 }
 window.addEventListener('pointerup',endHold);window.addEventListener('pointercancel',endHold);
 const KEY={ArrowLeft:'left',a:'left',A:'left',ArrowRight:'right',d:'right',D:'right'};
@@ -134,8 +150,8 @@ window.addEventListener('keydown',ev=>{
   if(mv){ev.preventDefault();held[mv]=true;return}
   if(ev.repeat)return;
   if(JUMPKEY[ev.key]){ev.preventDefault();jump()}
-  else if(PUNCHKEY[ev.key]){ev.preventDefault();punch(st.p.face)}
-  else if(ev.key===' '){ev.preventDefault();st.p.charging=true;chargePid=null}
+  else if(PUNCHKEY[ev.key]){ev.preventDefault();punchAuto()}
+  else if(ev.key===' '){ev.preventDefault();st.p.charging=true;chargePid=null;chargeSrc='key'}
   else if(ev.key==='k'||ev.key==='K')special();
 });
 window.addEventListener('keyup',ev=>{
@@ -155,9 +171,8 @@ function bindHold(el,down,up){
 bindHold($('btnLeft'),()=>{held.left=true},()=>{held.left=false});
 bindHold($('btnRight'),()=>{held.right=true},()=>{held.right=false});
 bindTap($('btnJump'),jump);
-bindTap($('btnL'),()=>punch(-1));
-bindTap($('btnR'),()=>punch(1));
-$('btnCharge').addEventListener('pointerdown',e=>{e.preventDefault();try{$('btnCharge').setPointerCapture(e.pointerId);}catch(err){}$('btnCharge').classList.add('is-pressed');if(st&&st.run&&!paused){st.p.charging=true;chargePid=e.pointerId;}});
+bindTap($('btnPunch'),punchAuto);
+$('btnCharge').addEventListener('pointerdown',e=>{e.preventDefault();try{$('btnCharge').setPointerCapture(e.pointerId);}catch(err){}$('btnCharge').classList.add('is-pressed');if(navigator.vibrate)navigator.vibrate(10);if(st&&st.run&&!paused){st.p.charging=true;chargePid=e.pointerId;chargeSrc='pointer';}});
 ['pointerup','pointercancel','lostpointercapture'].forEach(ev=>$('btnCharge').addEventListener(ev,()=>{$('btnCharge').classList.remove('is-pressed');endHold();}));
 bindTap($('special'),special);
 
@@ -165,7 +180,8 @@ function updHud(){
   $('hp').firstElementChild.style.width=Math.max(0,st.hp)+'%';
   $('gauge').firstElementChild.style.width=st.gauge+'%';
   $('score').textContent=st.score;$('wave').textContent='WAVE '+st.wave;
-  $('special').disabled=!(st.gauge>=100&&st.run);
+  const rdy=st.gauge>=100&&st.run;
+  $('special').disabled=!rdy;$('special').classList.toggle('ready',rdy);
 }
 
 // ---- loop
@@ -196,7 +212,7 @@ function update(dt){
     }
   }
   p.punchT=Math.max(0,p.punchT-dt);p.hurtT=Math.max(0,p.hurtT-dt);
-  if(p.charging){const before=p.charge;p.charge=Math.min(2,p.charge+dt*1.1);
+  if(p.charging){const before=p.charge;p.charge=Math.min(2,p.charge+dt*1.1);drawCharge(p.charge);
     const cy=groundY-p.y-140*S;
     if(before<1&&p.charge>=1)popText(p.x,cy,'チャージ2',C.teal,.8);
     if(before<2&&p.charge>=2){popText(p.x,cy,'MAX!!',C.pink,1.2);st.shake=.15}}
