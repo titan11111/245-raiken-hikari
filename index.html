@@ -19,13 +19,20 @@
 <body>
 <div id="game-shell">
   <footer id="control-deck" aria-label="操作盤">
-    <button type="button" class="game-btn fist" id="btnL" aria-label="左パンチ">左拳</button>
-    <button type="button" class="game-btn charge" id="btnCharge" aria-label="雷ため">雷ため</button>
-    <button type="button" class="game-btn fist" id="btnR" aria-label="右パンチ">右拳</button>
-    <button type="button" class="game-btn special" id="special" aria-label="必殺技 天雷拳" disabled>天雷拳</button>
+    <div class="pad" aria-label="移動キー">
+      <button type="button" class="game-btn jump" id="btnJump" aria-label="ジャンプ">▲</button>
+      <button type="button" class="game-btn move" id="btnLeft" aria-label="左へ移動">◀</button>
+      <button type="button" class="game-btn move" id="btnRight" aria-label="右へ移動">▶</button>
+    </div>
     <div class="sys">
       <button type="button" class="game-btn" id="btnMute" aria-label="音の切り替え">♪</button>
       <button type="button" class="game-btn" id="btnPause" aria-label="一時停止">Ⅱ</button>
+    </div>
+    <div class="acts" aria-label="攻撃">
+      <button type="button" class="game-btn fist" id="btnL" aria-label="左パンチ">左拳</button>
+      <button type="button" class="game-btn fist" id="btnR" aria-label="右パンチ">右拳</button>
+      <button type="button" class="game-btn charge" id="btnCharge" aria-label="雷ため">雷ため</button>
+      <button type="button" class="game-btn special" id="special" aria-label="必殺技 天雷拳" disabled>天雷拳</button>
     </div>
   </footer>
   <div id="game-stage">
@@ -42,9 +49,11 @@
         <h1>雷拳ヒカリ</h1>
         <p>浮遊都市に雷雲鬼が押し寄せてきた。拳に雷をためて、屋上を守り抜け。</p>
         <div class="how">
-          <b>パンチ</b><span>左右ボタン、または画面の左右</span>
-          <b>雷弾</b><span>雷ためを長押しして離す</span>
-          <b>天雷拳</b><span>ゲージMAXで必殺</span>
+          <b>移動</b><span>◀▶ を押しっぱなし／← →</span>
+          <b>ジャンプ</b><span>▲ ボタン／↑（敵の攻撃をかわせる）</span>
+          <b>パンチ</b><span>左拳・右拳ボタン、画面タップ／Z</span>
+          <b>雷弾</b><span>雷ためを長押しして離す／Space</span>
+          <b>天雷拳</b><span>ゲージMAXで必殺／K</span>
         </div>
         <button type="button" id="start" class="game-btn">はじめる</button>
         <div id="best"></div>

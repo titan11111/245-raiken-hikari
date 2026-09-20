@@ -88,11 +88,44 @@ canvas { position: absolute; inset: 0; display: block; width: 100%; height: 100%
   border-top: 1px solid rgba(255,225,77,.25);
   z-index: 8; touch-action: none; overflow: hidden;
 }
-#control-deck .fist { flex: 1; min-height: 56px; background: var(--teal); color: var(--deep); }
-#control-deck .charge { flex: 1.1; min-height: 64px; background: var(--pink); }
-#control-deck .special { flex: 1; min-height: 56px; background: var(--bolt); }
-#control-deck .sys { display: flex; flex-direction: column; gap: 6px; }
-#control-deck .sys .game-btn { min-width: 48px; min-height: 48px; background: #2a2460; color: var(--ink); font-size: 14px; }
+/* 左：移動パッド（◀ ▶ ＋ ▲ジャンプ）。押しっぱなし用に touch-action:none */
+#control-deck .pad {
+  flex: 0 0 auto; display: grid; gap: 5px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-rows: repeat(2, minmax(0, 1fr));
+  width: min(46vw, 168px); height: 100%; max-height: 124px;
+}
+#control-deck .pad .game-btn {
+  min-width: 0; min-height: 0; font-size: 22px; line-height: 1;
+  padding: 0; touch-action: none;
+}
+#btnJump { grid-column: 1 / -1; grid-row: 1; background: var(--teal); color: var(--deep); }
+#btnLeft { grid-column: 1; grid-row: 2; }
+#btnRight { grid-column: 2; grid-row: 2; }
+#control-deck .move { background: #3a2f7a; color: var(--ink); }
+
+/* 右：攻撃 2x2 */
+#control-deck .acts {
+  flex: 1 1 auto; min-width: 0; display: grid; gap: 5px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-rows: repeat(2, minmax(0, 1fr));
+  height: 100%; max-height: 124px;
+}
+#control-deck .acts .game-btn {
+  min-width: 0; min-height: 0; font-size: 14px; padding: 0 2px; touch-action: none;
+}
+#control-deck .fist { background: var(--teal); color: var(--deep); }
+#control-deck .charge { background: var(--pink); color: var(--deep); }
+#control-deck .special { background: var(--bolt); color: var(--deep); }
+
+#control-deck .sys { flex: 0 0 auto; display: flex; flex-direction: column; gap: 5px; height: 100%; max-height: 124px; }
+#control-deck .sys .game-btn { flex: 1; min-width: 48px; min-height: 0; background: #2a2460; color: var(--ink); font-size: 14px; }
+
+@media (max-height: 620px) {
+  #control-deck .pad, #control-deck .acts, #control-deck .sys { max-height: 96px; }
+  #control-deck .acts .game-btn { font-size: 12px; }
+  #control-deck .pad .game-btn { font-size: 18px; }
+}
 
 #pauseDlg {
   border: 0; border-radius: 16px; background: #1a1540; color: var(--ink);
